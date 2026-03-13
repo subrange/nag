@@ -369,26 +369,46 @@ class Nag:
     def close(self):
         """Set status to resolved and save
 
+        nag "<id>" fetch close
         nag "fix the lexer" new close
         """
-        # TODO: update fetched issues
-        if len(self.s) == 0:
-            print("call close with no args")
-            exit(1)
 
-        id = self.s.pop()
+        now = str(datetime.datetime.now())
 
-        if not isinstance(id, str):
-            print("id must be str")
-            exit(1)
+        if self.m:
+            for id, meta in self.m.items():
+                meta["status"] = "resolved"
+                meta["updated_at"] = now
 
-        self.meta["status"] = "resolved"
-        self.meta["updated_at"] = str(datetime.datetime.now())
+                if DEBUG:
+                    print(f"id: {id}")
+                    print(f"status: {meta['status']}")
+                    print(f"updated_at: {meta['updated_at']}")
 
-        with open(self.root + "/todo/" + id + "/meta.json", "w") as f:
-            f.write(json.dumps(self.meta))
+                with open(self.root + "/todo/" + id + "/meta.json", "w") as f:
+                    f.write(json.dumps(self.meta))
 
-        print("closed issue")
+                print(f"closed {len(self.m)} issue{'s' if len(self.m) != 1 else ''}")
+        else:
+            self.meta["status"] = "resolved"
+            self.meta["updated_at"] = now
+
+            if DEBUG:
+                print(f"id: {self.meta['id']}")
+                print(f"status: {self.meta['status']}")
+                print(f"updated_at: {self.meta['updated_at']}")
+
+            path = self.root + "/todo/" + self.meta["id"]
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            if not self.meta.get("created_at"):
+                self.meta["created_at"] = now
+
+            with open(path + "/meta.json", "w") as f:
+                f.write(json.dumps(self.meta))
+
+            print("closed issue")
 
     def all(self):
         """Load all issue objects
