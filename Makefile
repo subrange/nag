@@ -1,19 +1,16 @@
 PREFIX ?= $(HOME)/.local
-BINDIR = $(PREFIX)/bin
-VENV = .venv
-PYTHON = $(VENV)/bin/python
-PIP = $(VENV)/bin/pip
+BINDIR  = $(PREFIX)/bin
 
-.PHONY: install fmt venv
+.PHONY: all install fmt clean
 
-venv: $(VENV)/bin/activate
+all: install
 
-$(VENV)/bin/activate:
-	python3 -m venv $(VENV)
-	$(PIP) install -r requirements.txt
-
-install: venv
+install:
+	mkdir -p $(BINDIR)
 	install -m 755 nag.py $(BINDIR)/nag
 
-fmt: venv
-	$(VENV)/bin/black nag.py
+fmt:
+	black nag.py
+
+clean:
+	rm -rf .venv
