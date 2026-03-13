@@ -58,7 +58,6 @@ The IDs are short (4 hex chars) generated from UUID library. And, yes, that's en
 
 These are some things that I'm working on right now:
 
-- [ ] `all` push all fully loaded issue objects
 - [ ] `fetch` load a single issue by ID
 - [ ] `filter` filter list by predicate string
 - [ ] `sort` sort list by field name

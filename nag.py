@@ -64,7 +64,9 @@ class Nag:
             "attach": self.attach,
             "status": self.status,
             "ls": self.ls,
+            "all": self.all,
         }
+        self.m = {}
         # TODO: check if ID already exists
         meta["id"] = str(uuid.uuid4())[:4]
 
@@ -101,6 +103,19 @@ class Nag:
         print(f"{count} issue{'s' if count != 1 else ''}")
         if count == 0:
             print("no issues")
+
+    def all(self):
+        """Load all issue objects
+
+        nag all ... [filter ...] [sort ...] [show ...]
+        """
+        for id in os.listdir(self.root + "/todo"):
+            path = self.root + "/todo/" + id
+            with open(path + "/meta.json") as f:
+                meta = json.load(f)
+                self.m[id] = meta
+                if DEBUG:
+                    print(meta)
 
     def status(self):
         """Set the status of the current issue
