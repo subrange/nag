@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 import uuid
 import datetime
 import json
@@ -10,7 +11,25 @@ import copy
 
 DEBUG = False
 
-IGNORED_DIRS = {".git", "todo", "_build", "_opam"}
+IGNORED_DIRS = {".git", "todo", "_build", "_opam", ".venv"}
+
+LANGUAGES = {
+    ".ml": {"block_end": "*)"},
+    ".mly": {"block_end": "*)"},
+    ".py": {},
+    ".rs": {},
+    ".c": {},
+    ".h": {},
+    ".js": {},
+}
+
+TODO_BARE = re.compile(r"TODO" + r":\s*(.*)")  # concat to avoid matching
+TODO_BARE_META = re.compile(r"TODO" + r"<([^>]+)>:\s*(.*)")
+TODO_TAGGED = re.compile(r"TODO" + r"\(([^)]+)\):\s*(.*)")
+TODO_TAGGED_META = re.compile(r"TODO" + r"\(([^)]+)\)<([^>]+)>:\s*(.*)")
+
+PRIORITIES = {"low", "medium", "high"}
+
 
 HELP_MESSAGE = """Usage: nag [token ...]
 
@@ -33,6 +52,7 @@ Commands:
   show      nag all show
   graph     nag all graph
   sync      nag sync
+  clear     nag "<id>" fetch clear
   help      nag help
 """
 
@@ -78,6 +98,7 @@ class Nag:
             "graph": self.graph,
             "depends": self.depends,
             "sync": self.sync,
+            "clear": self.clear,
         }
         self.m = {}
         self._reset_meta()
@@ -582,6 +603,50 @@ class Nag:
             print("copied", attachment)
 
         print("saved issue")
+
+    def clear(self):
+        """Remove TODO IDs from source files and delete issues
+
+        nag "<id>" fetch clear
+        nag all clear
+        """
+        if not self.m:
+            print("no issues loaded")
+            exit(1)
+
+        for issue_id, meta in self.m.items():
+            source = meta.get("source", "")
+            if source:
+                filepath, _, lineno = source.rpartition(":")
+                filepath = os.path.join(self.root, filepath)
+
+                if os.path.isfile(filepath) and lineno.isdigit():
+                    with open(filepath, "r") as f:
+                        lines = f.readlines()
+
+                    idx = int(lineno) - 1
+                    line = lines[idx] if 0 <= idx < len(lines) else ""
+                    m = TODO_TAGGED_META.search(line)
+                    if m and m.group(1) == issue_id:
+                        old = "TODO" + f"({issue_id})<{m.group(2)}>:"
+                        repl = "TODO" + f"<{m.group(2)}>:"
+                    elif ("TODO" + f"({issue_id}):") in line:
+                        old = "TODO" + f"({issue_id}):"
+                        repl = "TODO" + ":"
+                    else:
+                        old = None
+                        repl = ""
+
+                    if old:
+                        lines[idx] = line.replace(old, repl, 1)
+                        with open(filepath, "w") as f:
+                            f.writelines(lines)
+
+            issue_dir = os.path.join(self.root, "todo", issue_id)
+            if os.path.exists(issue_dir):
+                shutil.rmtree(issue_dir)
+
+            print(f"cleared TODO({issue_id}): {meta.get('title', '')}")
 
 
 def split_pipelines(tokens):
