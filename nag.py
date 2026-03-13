@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import uuid
+import datetime
+import json
+
+"""
+
+Filters
+
+"status:open"
+"status:orphaned"
+"priority:high"
+"tag:codegen"
+"source:codegen.ml"
+"blocked" (if depends_on is not empty and at least one dependency is not resolved)
+
+"""
+
+DEBUG = True
+
+IGNORED_DIRS = {".git", ".issues", "_build", "_opam"}
+
+HELP_MESSAGE = """Usage: nag [args...]
+
+Commands:
+  new       nag "<title>" new
+  tag       nag ... "<tag>" tag
+  priority  nag ... <low|medium|high> priority
+  save      nag ... save
+  help      nag help
+"""
+
+meta = {
+    "id": "",
+    "title": "",
+    "status": "open",
+    "priority": "low",
+    "tags": [],
+    "created_at": "",
+    "source": "",
+    "depends": [],
+    "blocks": [],
+}
+
+
+class Nag:
+    def __init__(self):
+        self.s = []
+        self.root = ""
+        self.t = {
+            "new": self.new,
+            "save": self.save,
+            "tag": self.tag,
+            "priority": self.priority,
+            "help": self.help,
+            "init": self.init,
+        }
+        meta["id"] = str(uuid.uuid4())[:4]
+
+    def init(self):
+        """Initializes the Nag tool"""
+        # TODO: warn if a parent nag project already exists
+        path = os.path.join(os.getcwd(), ".issues")
+        if os.path.exists(path):
+            print("already a nag project")
+            exit(1)
+        os.makedirs(path)
+        print("initialized nag project")
+
+    def help(self):
+        """Print help message
+
+        nag help
+        """
+        if len(self.s) != 0:
+            print("call help with no args")
+            exit(1)
+        print(HELP_MESSAGE)
+        exit(0)
+
+    def find_root(self):
+        """Walk up from current dir to find .issues"""
+        path = os.path.abspath(os.getcwd())
+        while True:
+            if os.path.isdir(os.path.join(path, ".issues")):
+                return path
+            parent = os.path.dirname(path)
+            if parent == path:
+                return None
+            path = parent
+
+    def tag(self):
+        """Add a tag to the current issue
+
+        nag "fix the lexer" new "codegen" tag
+        """
+        while True:
+            if len(self.s) == 0:
+                print("call tag with no args")
+                exit(1)
+            tag = self.s.pop()
+            if not isinstance(tag, str):
+                print("tag must be str")
+                exit(1)
+            if tag not in meta["tags"]:
+                meta["tags"].append(tag)
+            if len(self.s) == 0 or self.s[0] != "tag":
+                break
+
+        if DEBUG:
+            print("tags:", meta["tags"])
+
+    def priority(self):
+        """Set the priority of the current issue
+
+        nag "fix the lexer" new "high" priority
+        """
+        p = self.s.pop()
+
+        if p not in ["low", "medium", "high"]:
+            print("priority must be low, medium, or high")
+            exit(1)
+        meta["priority"] = p
+
+        if DEBUG:
+            print("priority:", meta["priority"])
+
+    def new(self):
+        """Create a new issue
+
+        nag "fix the lexer" new
+        """
+        title = self.s.pop()
+        if not isinstance(title, str):
+            print("title must be str")
+            exit(1)
+        meta["title"] = title
+        meta["status"] = "open"
+
+        if DEBUG:
+            print("title:", meta["title"])
+
+    def save(self):
+        """Save current issue
+
+        nag "fix the lexer" new save
+        """
+        path = self.root + "/.issues/" + meta["id"]
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        meta["created_at"] = str(datetime.datetime.now())
+        meta["updated_at"] = str(datetime.datetime.now())
+
+        with open(path + "/meta.json", "w") as f:
+            f.write(json.dumps(meta))
+
+        body_path = path + "/body.md"
+        if not os.path.exists(body_path):
+            open(body_path, "w").close()
+
+        attachments_path = path + "/attachments"
+        if not os.path.exists(attachments_path):
+            os.makedirs(attachments_path)
+
+        print("saved issue")
+        exit(0)
+
+
+if __name__ == "__main__":
+    n = Nag()
+    if len(sys.argv) == 1:
+        print(HELP_MESSAGE)
+        exit(0)
+    else:
+        tokens = sys.argv[1:]
+
+        needs_root = not any(token in ["init", "help"] for token in tokens)
+        if needs_root:
+            root = n.find_root()
+            if root is None:
+                print("not a nag project")
+                exit(1)
+            n.root = root
+
+        for token in tokens:
+            if token in n.t:
+                n.t[token]()
+            else:
+                n.s.append(token)
+
+        if n.s:
+            print("unknown command:", *n.s)
+            exit(1)
