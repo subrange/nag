@@ -11,6 +11,14 @@ nag "fix the lexer" new "high" priority save
 
 The language is super basic. There are quote literals and keywords that push and pop from a stack.
 
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/subrange/nag/main/install.sh | sh
+```
+
+Requires `python3` and either `curl` or `wget`.
+
 ## Keywords
 
 | Keyword        | Description                                   |
