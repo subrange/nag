@@ -21,7 +21,7 @@ Filters
 
 DEBUG = True
 
-IGNORED_DIRS = {".git", ".issues", "_build", "_opam"}
+IGNORED_DIRS = {".git", "todo", "_build", "_opam"}
 
 HELP_MESSAGE = """Usage: nag [args...]
 
@@ -63,7 +63,7 @@ class Nag:
     def init(self):
         """Initializes the Nag tool"""
         # TODO: warn if a parent nag project already exists
-        path = os.path.join(os.getcwd(), ".issues")
+        path = os.path.join(os.getcwd(), "todo")
         if os.path.exists(path):
             print("already a nag project")
             exit(1)
@@ -82,10 +82,10 @@ class Nag:
         exit(0)
 
     def find_root(self):
-        """Walk up from current dir to find .issues"""
+        """Walk up from current dir to find todo"""
         path = os.path.abspath(os.getcwd())
         while True:
-            if os.path.isdir(os.path.join(path, ".issues")):
+            if os.path.isdir(os.path.join(path, "todo")):
                 return path
             parent = os.path.dirname(path)
             if parent == path:
@@ -148,7 +148,7 @@ class Nag:
 
         nag "fix the lexer" new save
         """
-        path = self.root + "/.issues/" + meta["id"]
+        path = self.root + "/todo/" + meta["id"]
         if not os.path.exists(path):
             os.makedirs(path)
 

@@ -1,6 +1,6 @@
 # Nag
 
-A postfix stack-based DSL for tracking issues inside a project.
+A postfix stack-based DSL for tracking todo inside a project.
 
 > [!WARNING]
 > I wouldn't recommend using this in production. I use it for my own personal projects.
@@ -13,13 +13,13 @@ The language is super basic. There are quote literals and keywords that push and
 
 ## Project structure
 
-If you run `nag init` it creates a `.issues/` directory. Once you `save`, the tool creates an issue directory for each ID in your source files.
+If you run `nag init` it creates a `todo/` directory. Once you `save`, the tool creates an issue directory for each ID in your source files.
 
 > [!NOTE]
-> The tool walks up the current directory until it finds a `.issues/` directory.
+> The tool walks up the current directory until it finds a `todo/` directory.
 
 ```
-.issues/
+todo/
   <id>/
     meta.json     - tags, title, timestamps, etc.
     body.md       - freeform markdown
@@ -58,7 +58,7 @@ The IDs are short (4 hex chars) generated from UUID library. And, yes, that's en
 
 These are some things that I'm working on right now:
 
-- [ ] `ls` push all issue IDs from `.issues/`
+- [ ] `ls` push all issue IDs from `todo/`
 - [ ] `all` push all fully loaded issue objects
 - [ ] `fetch` load a single issue by ID
 - [ ] `filter` filter list by predicate string
@@ -78,7 +78,7 @@ The `all` is special version of `ls` because it loads every `meta.json` off disk
 
 Before, I start creating any language I like writing down some examples of how I would use the tool:
 
-Show all open high priority codegen issues:
+Show all open high priority codegen todo:
 
 ```sh
 nag all "status:open" filter "priority:high" filter "tag:codegen" filter show
