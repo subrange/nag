@@ -154,7 +154,33 @@ class Nag:
 
         nag "x91b" fetch show
         """
-        pass
+        if len(self.s) == 0:
+            print("call fetch with no args")
+            exit(1)
+
+        id = self.s.pop()
+
+        if not isinstance(id, str):
+            print("id must be str")
+            exit(1)
+
+        path = self.root + "/todo/" + id
+        if not os.path.exists(path):
+            print(f"todo not found: {id}")
+            exit(1)
+
+        with open(path + "/meta.json") as f:
+            self.meta = json.load(f)
+
+        body_path = path + "/body.md"
+        if os.path.exists(body_path):
+            with open(body_path) as f:
+                self.notes = [line.rstrip("\n") for line in f if line.strip()]
+
+        self.m = {id: self.meta}
+
+        if DEBUG:
+            print("fetched:", self.m)
 
     def _filter_eq(self, field, value, valid=None):
         if valid and value not in valid:
@@ -334,6 +360,11 @@ class Nag:
         if not isinstance(attachment, str):
             print("attachment must be str")
             exit(1)
+
+        if not os.path.exists(attachment):
+            print(f"attachment not found: {attachment}")
+            exit(1)
+
         self.attachments.append(attachment)
 
     def note(self):
@@ -422,17 +453,17 @@ class Nag:
         if not os.path.exists(path):
             os.makedirs(path)
 
-        self.meta["created_at"] = str(datetime.datetime.now())
+        if not self.meta.get("created_at"):
+            self.meta["created_at"] = str(datetime.datetime.now())
         self.meta["updated_at"] = str(datetime.datetime.now())
 
         with open(path + "/meta.json", "w") as f:
             f.write(json.dumps(self.meta))
 
         body_path = path + "/body.md"
-        if not os.path.exists(body_path):
-            with open(body_path, "w") as f:
-                for note in self.notes:
-                    f.write(note + "\n")
+        with open(body_path, "w") as f:
+            for note in self.notes:
+                f.write(note + "\n")
 
         attachments_path = path + "/attachments"
         if not os.path.exists(attachments_path):
