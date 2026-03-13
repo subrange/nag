@@ -279,10 +279,8 @@ class Nag:
             return
 
         dependents = {id: [] for id in issues}
-        all_dep_ids = set()
         for id, meta in issues.items():
             for dep in meta.get("depends", []):
-                all_dep_ids.add(dep)
                 if dep in dependents:
                     dependents[dep].append(id)
 
@@ -372,43 +370,31 @@ class Nag:
         nag "<id>" fetch close
         nag "fix the lexer" new close
         """
+        if not self.m:
+            self.m = {self.meta["id"]: self.meta}
 
         now = str(datetime.datetime.now())
 
-        if self.m:
-            for id, meta in self.m.items():
-                meta["status"] = "resolved"
-                meta["updated_at"] = now
-
-                if DEBUG:
-                    print(f"id: {id}")
-                    print(f"status: {meta['status']}")
-                    print(f"updated_at: {meta['updated_at']}")
-
-                with open(self.root + "/todo/" + id + "/meta.json", "w") as f:
-                    f.write(json.dumps(self.meta))
-
-                print(f"closed {len(self.m)} issue{'s' if len(self.m) != 1 else ''}")
-        else:
-            self.meta["status"] = "resolved"
-            self.meta["updated_at"] = now
+        for id, meta in self.m.items():
+            meta["status"] = "resolved"
+            meta["updated_at"] = now
+            if not meta.get("created_at"):
+                meta["created_at"] = now
 
             if DEBUG:
-                print(f"id: {self.meta['id']}")
-                print(f"status: {self.meta['status']}")
-                print(f"updated_at: {self.meta['updated_at']}")
+                print(f"id: {id}")
+                print(f"status: {meta['status']}")
+                print(f"updated_at: {meta['updated_at']}")
 
-            path = self.root + "/todo/" + self.meta["id"]
+            path = self.root + "/todo/" + id
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            if not self.meta.get("created_at"):
-                self.meta["created_at"] = now
-
             with open(path + "/meta.json", "w") as f:
-                f.write(json.dumps(self.meta))
+                f.write(json.dumps(meta))
 
-            print("closed issue")
+        count = len(self.m)
+        print(f"closed {count} issue{'s' if count != 1 else ''}")
 
     def all(self):
         """Load all issue objects
