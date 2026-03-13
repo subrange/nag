@@ -5,6 +5,7 @@ import os
 import uuid
 import datetime
 import json
+import shutil
 
 """
 
@@ -39,6 +40,7 @@ meta = {
     "status": "open",
     "priority": "low",
     "notes": [],
+    "attachments": [],
     "tags": [],
     "created_at": "",
     "source": "",
@@ -59,6 +61,7 @@ class Nag:
             "help": self.help,
             "init": self.init,
             "note": self.note,
+            "attach": self.attach,
         }
         meta["id"] = str(uuid.uuid4())[:4]
 
@@ -82,6 +85,18 @@ class Nag:
             exit(1)
         print(HELP_MESSAGE)
         exit(0)
+
+    def attach(self):
+        """Add an attachment to the current issue
+
+        nag "assets/crash.png" attach save
+        """
+        # TODO: Append attachments to existing attachments (fetch)
+        attachment = self.s.pop()
+        if not isinstance(attachment, str):
+            print("attachment must be str")
+            exit(1)
+        meta["attachments"].append(attachment)
 
     def note(self):
         """Add a note to the current issue
@@ -184,6 +199,10 @@ class Nag:
         attachments_path = path + "/attachments"
         if not os.path.exists(attachments_path):
             os.makedirs(attachments_path)
+
+        for attachment in meta["attachments"]:
+            shutil.copy(attachment, attachments_path)
+            print("copied", attachment)
 
         print("saved issue")
         exit(0)
