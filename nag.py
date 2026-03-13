@@ -63,6 +63,7 @@ class Nag:
             "note": self.note,
             "attach": self.attach,
             "status": self.status,
+            "ls": self.ls,
         }
         # TODO: check if ID already exists
         meta["id"] = str(uuid.uuid4())[:4]
@@ -87,6 +88,19 @@ class Nag:
             exit(1)
         print(HELP_MESSAGE)
         exit(0)
+
+    def ls(self):
+        """List all issue IDs
+
+        nag ls
+        """
+        count = 0
+        for id in os.listdir(self.root + "/todo"):
+            count += 1
+            print(id)
+        print(f"{count} issue{'s' if count != 1 else ''}")
+        if count == 0:
+            print("no issues")
 
     def status(self):
         """Set the status of the current issue

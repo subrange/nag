@@ -58,7 +58,6 @@ The IDs are short (4 hex chars) generated from UUID library. And, yes, that's en
 
 These are some things that I'm working on right now:
 
-- [ ] `ls` push all issue IDs from `todo/`
 - [ ] `all` push all fully loaded issue objects
 - [ ] `fetch` load a single issue by ID
 - [ ] `filter` filter list by predicate string
