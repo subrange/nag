@@ -367,23 +367,176 @@ class Nag:
 
         nag sync
         """
-        pass
+        if len(self.s) != 0:
+            print("call sync with no args")
+            exit(1)
 
-    def ls(self):
-        """List all issue IDs
+        source_ids = set()
+        for filepath, lang_info in self._scan_files():
+            self._process_file(filepath, lang_info, source_ids)
 
-        nag ls
+        issues_dir = os.path.join(self.root, "todo")
+        for issue_id in os.listdir(issues_dir):
+            if issue_id in source_ids:
+                continue
+            meta_path = os.path.join(issues_dir, issue_id, "meta.json")
+            if not os.path.isfile(meta_path):
+                continue
+
+            with open(meta_path, "r") as f:
+                m = json.load(f)
+
+            if m.get("status") != "orphaned":
+                m["status"] = "orphaned"
+                m["updated_at"] = str(datetime.datetime.now())
+                with open(meta_path, "w") as f:
+                    f.write(json.dumps(m))
+                print(f"orphaned TODO({issue_id}): {m['title']}")
+
+    def _parse_meta(self, meta_str):
+        parts = [p.strip() for p in meta_str.split(",") if p.strip()]
+        priority = next((p for p in parts if p in PRIORITIES), None)
+        tags = [p for p in parts if p not in PRIORITIES]
+        return priority, tags
+
+    def _match_todo(self, line):
+        """Match a TODO comment in a line.
+
+        Returns (match, meta_str, priority, tags, title_raw, old_token) or None.
+        Already-tagged TODOs return (None, existing_id, None, [], "", "").
         """
-        count = 0
+        m = TODO_TAGGED_META.search(line)
+        if m:
+            return None, m.group(1), None, [], "", ""
 
-        for id in os.listdir(self.root + "/todo"):
-            count += 1
-            print(id)
+        m = TODO_TAGGED.search(line)
+        if m:
+            return None, m.group(1), None, [], "", ""
 
-        if count == 0:
-            print("no todos")
-        else:
-            print(f"{count} todo{'s' if count != 1 else ''}")
+        m = TODO_BARE_META.search(line)
+        if m:
+            meta_str = m.group(1)
+            priority, tags = self._parse_meta(meta_str)
+            return m, meta_str, priority, tags, m.group(2), "TODO" + f"<{meta_str}>:"
+
+        m = TODO_BARE.search(line)
+        if m:
+            return m, None, None, [], m.group(1), "TODO" + ":"
+
+        return None
+
+    def _clean_title(self, title, match, line, block_end):
+        """Strip string-literal quotes and block-comment endings from a title."""
+        start = match.start()
+        if start > 0 and line[start - 1] == '"' and '"' in title:
+            title = title[: title.index('"')].strip()
+
+        if block_end and block_end in title:
+            title = title[: title.index(block_end)].strip()
+
+        return title
+
+    def _collect_block_body(self, lines, start, block_end):
+        """Collect continuation lines from a block comment until block_end."""
+        extra = []
+        j = start
+        while j < len(lines):
+            if block_end in lines[j]:
+                content = lines[j].split(block_end)[0].strip()
+                if content:
+                    extra.append(content)
+                break
+            extra.append(lines[j].rstrip())
+            j += 1
+        return extra
+
+    def _scan_files(self):
+        for dirpath, dirnames, filenames in os.walk(self.root):
+            dirnames[:] = [d for d in dirnames if d not in IGNORED_DIRS]
+            for filename in filenames:
+                ext = os.path.splitext(filename)[1]
+                if ext in LANGUAGES:
+                    yield os.path.join(dirpath, filename), LANGUAGES[ext]
+
+    def _process_file(self, filepath, lang_info, source_ids):
+        with open(filepath, "r", errors="replace") as f:
+            lines = f.readlines()
+
+        block_end = lang_info.get("block_end")
+        modified = False
+        i = 0
+
+        while i < len(lines):
+            result = self._match_todo(lines[i])
+            if result is None:
+                i += 1
+                continue
+
+            m, meta_str, priority, tags, title_raw, old_token = result
+            if m is None:
+                source_ids.add(meta_str)
+                i += 1
+                continue
+            title = self._clean_title(title_raw.strip(), m, lines[i], block_end)
+
+            extra_lines = []
+            if block_end and block_end not in title_raw and block_end not in lines[i]:
+                extra_lines = self._collect_block_body(lines, i + 1, block_end)
+
+            new_id = str(uuid.uuid4())[:4]
+            new_token = (
+                f"TODO({new_id})<{meta_str}>:" if meta_str else f"TODO({new_id}):"
+            )
+            lines[i] = lines[i].replace(old_token, new_token, 1)
+            source_ids.add(new_id)
+            modified = True
+
+            rel_path = os.path.relpath(filepath, self.root)
+            self._create_issue_from_sync(
+                new_id,
+                title,
+                extra_lines,
+                f"{rel_path}:{i + 1}",
+                priority=priority,
+                tags=tags,
+            )
+            print(f"created TODO({new_id}): {title}")
+
+            i += 1
+
+        if modified:
+            with open(filepath, "w") as f:
+                f.writelines(lines)
+
+    def _create_issue_from_sync(
+        self, issue_id, title, extra_lines, source, priority=None, tags=None
+    ):
+        issue_dir = os.path.join(self.root, "todo", issue_id)
+        if os.path.exists(issue_dir):
+            return
+
+        os.makedirs(issue_dir)
+        os.makedirs(os.path.join(issue_dir, "attachments"))
+
+        now = str(datetime.datetime.now())
+        m = {
+            "id": issue_id,
+            "title": title,
+            "status": "open",
+            "priority": priority or "low",
+            "tags": tags or [],
+            "created_at": now,
+            "updated_at": now,
+            "source": source,
+            "depends": [],
+            "blocks": [],
+        }
+        with open(os.path.join(issue_dir, "meta.json"), "w") as f:
+            f.write(json.dumps(m))
+
+        body = "\n".join(extra_lines)
+        with open(os.path.join(issue_dir, "body.md"), "w") as f:
+            f.write(body)
 
     def close(self):
         """Set status to resolved and save
