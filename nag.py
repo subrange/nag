@@ -428,11 +428,16 @@ class Nag:
 
         nag "open" status save
         """
+        if len(self.s) == 0:
+            print("call status with no args")
+            exit(1)
+
         status = self.s.pop()
 
         if status not in ["open", "resolved"]:
             print("status must be open or resolved")
             exit(1)
+
         self.meta["status"] = status
 
     def attach(self):
@@ -440,7 +445,12 @@ class Nag:
 
         nag "assets/crash.png" attach save
         """
+        if len(self.s) == 0:
+            print("call attach with no args")
+            exit(1)
+
         attachment = self.s.pop()
+
         if not isinstance(attachment, str):
             print("attachment must be str")
             exit(1)
@@ -456,6 +466,10 @@ class Nag:
 
         nag "see the dump for the failure case" note save
         """
+        if len(self.s) == 0:
+            print("call note with no args")
+            exit(1)
+
         note = self.s.pop()
 
         if not isinstance(note, str):
@@ -512,6 +526,10 @@ class Nag:
 
         nag "fix the lexer" new "high" priority
         """
+        if len(self.s) == 0:
+            print("call priority with no args")
+            exit(1)
+
         p = self.s.pop()
 
         if p not in ["low", "medium", "high"]:
@@ -528,6 +546,10 @@ class Nag:
 
         nag "fix the lexer" new
         """
+        if len(self.s) == 0:
+            print("call new with no args")
+            exit(1)
+
         title = self.s.pop()
 
         if not isinstance(title, str):
