@@ -1,1 +1,4 @@
-(* TODO: I have to fix the lexer*)
+(* TODO: add goodbye *)
+
+let () =
+  print_endline "hello world"

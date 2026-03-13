@@ -34,6 +34,7 @@ Requires `python3` and either `curl` or `wget`.
 | `depends`      | Add a dependency                              |
 | `close`        | Set status to resolved and save               |
 | `sync`         | Scan source files, assign IDs, detect orphans |
+| `clear`        | Remove TODO IDs from source and delete issues |
 | `+`            | Separate multiple pipelines in one command    |
 
 ## Examples
