@@ -273,14 +273,75 @@ class Nag:
 
         nag all graph
         """
-        pass
+        issues = self.m
+        if not issues:
+            print("no todos")
+            return
+
+        dependents = {id: [] for id in issues}
+        all_dep_ids = set()
+        for id, meta in issues.items():
+            for dep in meta.get("depends", []):
+                all_dep_ids.add(dep)
+                if dep in dependents:
+                    dependents[dep].append(id)
+
+        roots = [
+            id
+            for id in issues
+            if not any(dep in issues for dep in issues[id].get("depends", []))
+        ] or list(issues.keys())
+
+        # Tree printing adapted from:
+        # https://simonhessner.de/python-3-recursively-print-structured-tree-including-hierarchy-markers-using-depth-first-search/
+        def print_tree(id, visited, level_markers=[]):
+            prefix = "".join("│   " if draw else "    " for draw in level_markers[:-1])
+
+            if level_markers:
+                prefix += "├── " if level_markers[-1] else "└── "
+
+            if id not in issues:
+                print(f"{prefix}{id}  (not loaded)")
+                return
+
+            if id in visited:
+                print(f"{prefix}{id}  [cycle]")
+                return
+
+            meta = issues[id]
+            print(
+                f"{prefix}{id}  {meta['title']}  [{meta['status']}, {meta['priority']}]"
+            )
+
+            children = dependents.get(id, [])
+            for i, child in enumerate(children):
+                print_tree(
+                    child, visited | {id}, [*level_markers, i < len(children) - 1]
+                )
+
+        for root_id in roots:
+            print_tree(root_id, set())
 
     def depends(self):
         """Add a dependency to the current issue
 
         nag "x91b" fetch "y22c" depends save
         """
-        pass
+        if len(self.s) == 0:
+            print("call depends with no args")
+            exit(1)
+
+        id = self.s.pop()
+
+        if not isinstance(id, str):
+            print("id must be str")
+            exit(1)
+
+        if id not in self.meta["depends"]:
+            self.meta["depends"].append(id)
+
+        if DEBUG:
+            print("depends:", self.meta["depends"])
 
     def sync(self):
         """Scan source files, assign IDs to comments, and detect orphans
@@ -359,7 +420,6 @@ class Nag:
 
         nag "assets/crash.png" attach save
         """
-        # TODO: Append attachments to existing attachments (fetch)
         attachment = self.s.pop()
         if not isinstance(attachment, str):
             print("attachment must be str")
@@ -376,11 +436,12 @@ class Nag:
 
         nag "see the dump for the failure case" note save
         """
-        # TODO: Append notes to existing notes (fetch)
         note = self.s.pop()
+
         if not isinstance(note, str):
             print("note must be str")
             exit(1)
+
         self.notes.append(note)
 
         if DEBUG:
@@ -389,12 +450,16 @@ class Nag:
     def find_root(self):
         """Walk up from current dir to find todo"""
         path = os.path.abspath(os.getcwd())
+
         while True:
             if os.path.isdir(os.path.join(path, "todo")):
                 return path
+
             parent = os.path.dirname(path)
+
             if parent == path:
                 return None
+
             path = parent
 
     def tag(self):
@@ -406,12 +471,16 @@ class Nag:
             if len(self.s) == 0:
                 print("call tag with no args")
                 exit(1)
+
             tag = self.s.pop()
+
             if not isinstance(tag, str):
                 print("tag must be str")
                 exit(1)
+
             if tag not in self.meta["tags"]:
                 self.meta["tags"].append(tag)
+
             if len(self.s) == 0 or self.s[0] != "tag":
                 break
 
@@ -428,6 +497,7 @@ class Nag:
         if p not in ["low", "medium", "high"]:
             print("priority must be low, medium, or high")
             exit(1)
+
         self.meta["priority"] = p
 
         if DEBUG:
@@ -439,9 +509,15 @@ class Nag:
         nag "fix the lexer" new
         """
         title = self.s.pop()
+
         if not isinstance(title, str):
             print("title must be str")
             exit(1)
+
+        if not title.strip():
+            print("title must not be empty")
+            exit(1)
+
         self.meta["title"] = title
         self.meta["status"] = "open"
 
@@ -511,7 +587,9 @@ if __name__ == "__main__":
             if i > 0:
                 print()
             print(f"query {i + 1}:")
+
         needs_root = any(t in n.t and t not in {"init", "help"} for t in pipeline)
+
         if needs_root and not n.root:
             print("not a nag project")
             exit(1)

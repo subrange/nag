@@ -2,4 +2,5 @@
 __pycache__/
 *.pyc
 docs/sync.md
+docs/close.md
 todo
