@@ -244,6 +244,7 @@ class Nag:
 
         issues = list(self.m.values())
         if not issues:
+            print("no todos")
             return
 
         col_widths = [
@@ -294,12 +295,15 @@ class Nag:
         nag ls
         """
         count = 0
+
         for id in os.listdir(self.root + "/todo"):
             count += 1
             print(id)
-        print(f"{count} issue{'s' if count != 1 else ''}")
+
         if count == 0:
-            print("no issues")
+            print("no todos")
+        else:
+            print(f"{count} todo{'s' if count != 1 else ''}")
 
     def close(self):
         """Set status to resolved and save
