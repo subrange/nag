@@ -198,10 +198,24 @@ class Nag:
     def _filter_contains(self, field, value):
         self.m = {k: v for k, v in self.m.items() if value in v[field]}
 
+    def _load_nagignore(self):
+        path = os.path.join(self.root, ".nagignore")
+        if not os.path.exists(path):
+            return set()
+        with open(path) as f:
+            return {
+                line.strip()
+                for line in f
+                if line.strip() and not line.strip().startswith("#")
+            }
+
     def _scan_files(self):
+        ignored = IGNORED_DIRS | self._load_nagignore()
         for dirpath, dirnames, filenames in os.walk(self.root):
-            dirnames[:] = [d for d in dirnames if d not in IGNORED_DIRS]
+            dirnames[:] = [d for d in dirnames if d not in ignored]
             for filename in filenames:
+                if filename in ignored:
+                    continue
                 ext = os.path.splitext(filename)[1]
                 if ext in LANGUAGES:
                     yield os.path.join(dirpath, filename), LANGUAGES[ext]
