@@ -11,7 +11,7 @@ import copy
 
 DEBUG = False
 
-IGNORED_DIRS = {".git", "todo", "_build", "_opam", ".venv"}
+IGNORED_DIRS = {".git", "todo" }
 
 LANGUAGES = {
     ".ml": {"block_end": "*)"},
