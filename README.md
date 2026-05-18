@@ -28,7 +28,6 @@ Requires `python3` and either `curl` or `wget`.
 | `save`         | Write changes to disk                         |
 | `close`        | Set status to resolved and save               |
 | `fetch`        | Load a single issue by ID                     |
-| `ls`           | List all issue IDs                            |
 | `all`          | Load all issues                               |
 | `me`           | Load issues assigned to the current user      |
 | `others`       | Load issues not assigned to the current user  |
