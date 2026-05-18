@@ -11,7 +11,7 @@ import copy
 
 DEBUG = False
 
-IGNORED_DIRS = {".git", "todo" }
+IGNORED_DIRS = {".git", "todo"}
 
 LANGUAGES = {
     ".ml": {"block_end": "*)"},
@@ -23,39 +23,40 @@ LANGUAGES = {
     ".js": {},
 }
 
-TODO_BARE = re.compile(r"TODO" + r":\s*(.*)")  # concat to avoid matching
-TODO_BARE_META = re.compile(r"TODO" + r"<([^>]+)>:\s*(.*)")
-TODO_TAGGED = re.compile(r"TODO" + r"\(([^)]+)\):\s*(.*)")
-TODO_TAGGED_META = re.compile(r"TODO" + r"\(([^)]+)\)<([^>]+)>:\s*(.*)")
+TODO_BARE = re.compile(r"(TODO|FIXME)" + r":\s*(.*)")  # concat to avoid matching
+TODO_BARE_META = re.compile(r"(TODO|FIXME)" + r"<([^>]+)>:\s*(.*)")
+TODO_TAGGED = re.compile(r"(TODO|FIXME)" + r"\(([^)]+)\):\s*(.*)")
+TODO_TAGGED_META = re.compile(r"(TODO|FIXME)" + r"\(([^)]+)\)<([^>]+)>:\s*(.*)")
 
 PRIORITIES = {"low", "medium", "high"}
+
+TITLE_MAX = 50
 
 
 HELP_MESSAGE = """Usage: nag [token ...]
 
 Commands:
   init      nag init
-  new       nag "<title>" new
-  tag       nag ... "<tag>" tag
+  new       nag <title> new
+  tag       nag ... <tag> tag
   priority  nag ... <low|medium|high> priority
   status    nag ... <open|resolved> status
-  note      nag ... "<text>" note
-  attach    nag ... "<file>" attach
-  depends   nag ... "<id>" depends
+  note      nag ... <text> note
+  attach    nag ... <file> attach
+  depends   nag ... <id> depends
   save      nag ... save
-  close     nag "<id>" fetch close
-  fetch     nag "<id>" fetch
-  ls        nag ls
+  close     nag <id> fetch close
+  fetch     nag <id> fetch
   all       nag all
   me        nag me
   others    nag others
-  pick      nag "<id>" fetch pick
-  filter    nag all|me|others "<field:value>" filter
+  pick      nag <id> fetch pick
+  filter    nag all|me|others <field:value> filter
   sort      nag all|me|others sort:<field>
   show      nag all|me|others show
   graph     nag all|me|others graph
   sync      nag sync
-  clear     nag "<id>" fetch clear
+  clear     nag <id> fetch clear
   help      nag help
 """
 
@@ -120,21 +121,23 @@ def _match_todo(line):
     """
     m = TODO_TAGGED_META.search(line)
     if m:
-        return None, m.group(1), None, [], "", ""
+        return None, m.group(2), None, [], "", ""
 
     m = TODO_TAGGED.search(line)
     if m:
-        return None, m.group(1), None, [], "", ""
+        return None, m.group(2), None, [], "", ""
 
     m = TODO_BARE_META.search(line)
     if m:
-        meta_str = m.group(1)
+        keyword = m.group(1)
+        meta_str = m.group(2)
         priority, tags = _parse_meta(meta_str)
-        return m, meta_str, priority, tags, m.group(2), "TODO" + f"<{meta_str}>:"
+        return m, meta_str, priority, tags, m.group(3), keyword + f"<{meta_str}>:"
 
     m = TODO_BARE.search(line)
     if m:
-        return m, None, None, [], m.group(1), "TODO" + ":"
+        keyword = m.group(1)
+        return m, None, None, [], m.group(2), keyword + ":"
 
     return None
 
@@ -157,7 +160,6 @@ class Nag:
             "note": self.note,
             "attach": self.attach,
             "status": self.status,
-            "ls": self.ls,
             "all": self.all,
             "close": self.close,
             "sort": self.sort_list,
@@ -220,7 +222,7 @@ class Nag:
                 if ext in LANGUAGES:
                     yield os.path.join(dirpath, filename), LANGUAGES[ext]
 
-    def _process_file(self, filepath, lang_info, source_ids):
+    def _process_file(self, filepath, lang_info, source_ids, source_locations):
         with open(filepath, "r", errors="replace") as f:
             lines = f.readlines()
 
@@ -237,6 +239,8 @@ class Nag:
             m, meta_str, priority, tags, title_raw, old_token = result
             if m is None:
                 source_ids.add(meta_str)
+                rel_path = os.path.relpath(filepath, self.root)
+                source_locations[meta_str] = f"{rel_path}:{i + 1}"
                 i += 1
                 continue
             title = _clean_title(title_raw.strip(), m, lines[i], block_end)
@@ -246,14 +250,17 @@ class Nag:
                 extra_lines = _collect_block_body(lines, i + 1, block_end)
 
             new_id = str(uuid.uuid4())[:4]
+            keyword = old_token.split("<")[0].split(":")[0]
             new_token = (
-                f"TODO({new_id})<{meta_str}>:" if meta_str else f"TODO({new_id}):"
+                f"{keyword}({new_id})<{meta_str}>:"
+                if meta_str
+                else f"{keyword}({new_id}):"
             )
             lines[i] = lines[i].replace(old_token, new_token, 1)
             source_ids.add(new_id)
             modified = True
 
-            # TODO: possible feature to parse assignee from comment e.g. @user
+            # TODO(4841): possible feature to parse assignee from comment e.g. @user
             assignee = None
 
             rel_path = os.path.relpath(filepath, self.root)
@@ -266,7 +273,7 @@ class Nag:
                 tags=tags,
                 assignee=assignee,
             )
-            print(f"created TODO({new_id}): {title}")
+            print(f"created {keyword}({new_id}): {title}")
 
             i += 1
 
@@ -317,7 +324,7 @@ class Nag:
         path = os.path.expanduser("~/.gitconfig")
         if not os.path.exists(path):
             return None
-        # TODO: other sections may have name =
+        # TODO(4668): other sections may have name =
         with open(path) as f:
             for line in f:
                 if line.strip().startswith("name ="):
@@ -337,7 +344,7 @@ class Nag:
             print("call init with no args")
             exit(1)
 
-        # TODO: warn if a parent nag project already exists
+        # TODO(7332): warn if a parent nag project already exists
         path = os.path.join(os.getcwd(), "todo")
         if os.path.exists(path):
             print("already a nag project")
@@ -359,7 +366,7 @@ class Nag:
     def pick(self):
         """Assign the fetched issue to the current user
 
-        nag "id" fetch pick
+        nag <id> fetch pick
         """
         if len(self.s) != 0:
             print("call pick with no args")
@@ -374,14 +381,13 @@ class Nag:
             print("no git config name")
             exit(1)
 
-        self.meta["assignee"] = name
-        self.meta["updated_at"] = str(datetime.datetime.now())
-
-        path = self.root + "/todo/" + self.meta["id"]
-        with open(path + "/meta.json", "w") as f:
-            f.write(json.dumps(self.meta))
-
-        print(f"assigned {self.meta['id']} to {name}")
+        for id, meta in self.m.items():
+            meta["assignee"] = name
+            meta["updated_at"] = str(datetime.datetime.now())
+            path = self.root + "/todo/" + id
+            with open(path + "/meta.json", "w") as f:
+                f.write(json.dumps(meta))
+            print(f"assigned {id} to {name}")
 
     def me(self):
         """Load issues assigned to the current user
@@ -546,35 +552,48 @@ class Nag:
         def fmt_date(s):
             if not s:
                 return ""
-            return datetime.datetime.fromisoformat(s).strftime("%Y-%m-%d %H:%M")
+            return datetime.datetime.fromisoformat(s).strftime("%b %d %H:%M")
 
         issues = list(self.m.values())
         if not issues:
             print("no todos")
             return
 
+        def fmt_title(t):
+            return t[: TITLE_MAX - 1] + "…" if len(t) > TITLE_MAX else t
+
         col_widths = [
             max(len(m["id"]) for m in issues),
-            max(len(m["title"]) for m in issues),
+            min(max(len(m["title"]) for m in issues), TITLE_MAX),
             max(len(m["status"]) for m in issues),
             max(len(m["priority"]) for m in issues),
             max(len(fmt_date(m["created_at"])) for m in issues),
         ]
 
+        headers = ["id", "title", "status", "priority", "date"]
+        header_parts = [h.ljust(col_widths[i]) for i, h in enumerate(headers)]
+        header_line = "  ".join(header_parts)
+        print(header_line)
+        print("-" * len(header_line))
+
         for meta in issues:
-            extras = meta["tags"] + meta["depends"] + meta["blocks"]
+            extras = []
             if meta["source"]:
                 extras.append(meta["source"])
+            extras += meta["tags"] + meta["depends"] + meta["blocks"]
             if meta.get("assignee"):
                 extras.append(meta["assignee"])
             parts = [
                 meta["id"].ljust(col_widths[0]),
-                meta["title"].ljust(col_widths[1]),
+                fmt_title(meta["title"]).ljust(col_widths[1]),
                 meta["status"].ljust(col_widths[2]),
                 meta["priority"].ljust(col_widths[3]),
                 fmt_date(meta["created_at"]).ljust(col_widths[4]),
             ] + extras
-            print("  ".join(parts).rstrip())
+            line = "  ".join(parts).rstrip()
+            print(line[: shutil.get_terminal_size().columns])
+
+        print(f"\n{len(issues)} issue{'s' if len(issues) != 1 else ''}")
 
     def graph(self):
         """Print an ASCII dependency DAG of loaded issues
@@ -664,8 +683,9 @@ class Nag:
             exit(1)
 
         source_ids = set()
+        source_locations = {}
         for filepath, lang_info in self._scan_files():
-            self._process_file(filepath, lang_info, source_ids)
+            self._process_file(filepath, lang_info, source_ids, source_locations)
 
         issues_dir = os.path.join(self.root, "todo")
         for issue_id in os.listdir(issues_dir):
@@ -681,17 +701,32 @@ class Nag:
             if not m.get("source"):
                 continue
 
-            if m.get("status") != "orphaned":
+            if m.get("status") not in ("orphaned", "resolved"):
                 m["status"] = "orphaned"
                 m["updated_at"] = str(datetime.datetime.now())
                 with open(meta_path, "w") as f:
                     f.write(json.dumps(m))
                 print(f"orphaned TODO({issue_id}): {m['title']}")
 
+        for issue_id, new_source in source_locations.items():
+            meta_path = os.path.join(issues_dir, issue_id, "meta.json")
+
+            if not os.path.isfile(meta_path):
+                continue
+
+            with open(meta_path) as f:
+                m = json.load(f)
+
+            if m.get("source") != new_source:
+                m["source"] = new_source
+                m["updated_at"] = str(datetime.datetime.now())
+                with open(meta_path, "w") as f:
+                    f.write(json.dumps(m))
+
     def close(self):
         """Set status to resolved and save
 
-        nag "<id>" fetch close
+        nag <id> fetch close
         nag "fix the lexer" new close
         """
         if len(self.s) != 0:
@@ -741,29 +776,6 @@ class Nag:
             self.m[id] = meta
             if DEBUG:
                 print(meta)
-
-    def ls(self):
-        """List all issue IDs
-
-        nag ls
-        """
-        if len(self.s) != 0:
-            print("call ls with no args")
-            exit(1)
-
-        entries = [
-            e
-            for e in os.listdir(self.root + "/todo")
-            if os.path.isfile(os.path.join(self.root, "todo", e, "meta.json"))
-        ]
-
-        for id in entries:
-            print(id)
-
-        if not entries:
-            print("no todos")
-        else:
-            print(f"{len(entries)} todo{'s' if len(entries) != 1 else ''}")
 
     def status(self):
         """Set the status of the current issue
@@ -946,7 +958,7 @@ class Nag:
     def clear(self):
         """Remove TODO IDs from source files and delete issues
 
-        nag "<id>" fetch clear
+        nag <id> fetch clear
         nag all clear
         """
         if len(self.s) != 0:
@@ -971,20 +983,24 @@ class Nag:
                     line = lines[idx] if 0 <= idx < len(lines) else ""
                     m = TODO_TAGGED_META.search(line)
 
-                    if m and m.group(1) == issue_id:
-                        old = "TODO" + f"({issue_id})<{m.group(2)}>:"
-                        repl = "TODO" + f"<{m.group(2)}>:"
+                    if m and m.group(2) == issue_id:
+                        keyword = m.group(1)
+                        old = keyword + f"({issue_id})<{m.group(3)}>:"
+                        repl = keyword + f"<{m.group(3)}>:"
                         lines[idx] = line.replace(old, repl, 1)
 
                         with open(filepath, "w") as f:
                             f.writelines(lines)
-                    elif ("TODO" + f"({issue_id}):") in line:
-                        old = "TODO" + f"({issue_id}):"
-                        repl = "TODO" + ":"
-                        lines[idx] = line.replace(old, repl, 1)
+                    else:
+                        m = TODO_TAGGED.search(line)
+                        if m and m.group(2) == issue_id:
+                            keyword = m.group(1)
+                            old = keyword + f"({issue_id}):"
+                            repl = keyword + ":"
+                            lines[idx] = line.replace(old, repl, 1)
 
-                        with open(filepath, "w") as f:
-                            f.writelines(lines)
+                            with open(filepath, "w") as f:
+                                f.writelines(lines)
 
             issue_dir = os.path.join(self.root, "todo", issue_id)
             if os.path.exists(issue_dir):
