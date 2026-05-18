@@ -32,7 +32,7 @@ Requires `python3` and either `curl` or `wget`.
 | `all`          | Load all issues                               |
 | `me`           | Load issues assigned to the current user      |
 | `others`       | Load issues not assigned to the current user  |
-| `pick`         | Assign the fetched issue to the current user  |
+| `pick`         | Assign loaded issues to the current user      |
 | `filter`       | Filter list by predicate string               |
 | `sort:<field>` | Sort list by field name                       |
 | `show`         | Print issue list                              |

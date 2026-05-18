@@ -1,5 +1,5 @@
-// TODO: add goodbye
-// TODO<low,cleanup>: add header guard
+// TODO(46a8): add goodbye
+// TODO(887f)<low,cleanup>: add header guard
 
 #include <stdio.h>
 
