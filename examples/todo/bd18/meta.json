@@ -1,0 +1,1 @@
+{"id": "bd18", "title": "replace console.log with proper error handling", "status": "open", "priority": "high", "tags": ["bug"], "created_at": "2026-07-01 02:46:06.677478", "updated_at": "2026-07-01 02:46:06.677478", "source": "main.js:2", "depends": [], "blocks": [], "assignee": null}

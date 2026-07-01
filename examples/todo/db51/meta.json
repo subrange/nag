@@ -1,0 +1,1 @@
+{"id": "db51", "title": "pattern match is non-exhaustive", "status": "open", "priority": "high", "tags": ["parser", "bug"], "created_at": "2026-07-01 02:46:06.677887", "updated_at": "2026-07-01 02:46:06.677887", "source": "main.ml:2", "depends": [], "blocks": [], "assignee": null}
