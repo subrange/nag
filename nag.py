@@ -265,7 +265,7 @@ class Nag:
                         f"{rel_path}:{i + 1}",
                         priority=priority,
                         tags=tags,
-                        assignee=None,
+                        assignee="",
                     )
                     print(f"recreated {keyword}({existing_id}): {title}")
                     changes += 1
@@ -285,7 +285,7 @@ class Nag:
             modified = True
 
             # TODO(4841): possible feature to parse assignee from comment e.g. @user
-            assignee = None
+            assignee = ""
 
             rel_path = os.path.relpath(filepath, self.root)
             self._create_issue_from_sync(
@@ -316,7 +316,7 @@ class Nag:
         source,
         priority=None,
         tags=None,
-        assignee=None,
+        assignee="",
     ):
         issue_dir = os.path.join(self.root, "todo", issue_id)
         if os.path.exists(issue_dir):
