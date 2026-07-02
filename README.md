@@ -46,7 +46,7 @@ Requires `python3` and either `curl` or `wget`.
 Show all open high priority codegen todo:
 
 ```sh
-nag all "status:open" filter "priority:high" filter "tag:codegen" filter show
+nag all status:open filter priority:high filter tag:codegen filter show
 ```
 
 Create a new issue with tags:

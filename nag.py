@@ -39,8 +39,8 @@ Commands:
   init      nag init
   new       nag <title> new
   tag       nag ... <tag> tag
-  priority  nag ... <low|medium|high> priority
-  status    nag ... <open|resolved> status
+  priority  nag ... <low|medium|high> priority   (sets priority on current issue)
+  status    nag ... <open|resolved> status       (sets status on current issue)
   note      nag ... <text> note
   attach    nag ... <file> attach
   depends   nag ... <id> depends
@@ -51,12 +51,15 @@ Commands:
   me        nag me
   others    nag others
   pick      nag <id> fetch pick
-  filter    nag all|me|others <field:value> filter
+  filter    nag all|me|others field:value filter
+            fields: status:open|resolved|orphaned, priority:low|medium|high,
+                    tag id title source depends blocks created_at updated_at
   sort      nag all|me|others sort:<field>
   show      nag all|me|others show
   graph     nag all|me|others graph
   sync      nag sync
   clear     nag <id> fetch clear
+            nag all|me|others field:value filter clear
   help      nag help
 """
 
