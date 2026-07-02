@@ -119,28 +119,30 @@ def _parse_meta(meta_str):
 def _match_todo(line):
     """Match a TODO comment in a line.
 
-    Returns (match, meta_str, priority, tags, title_raw, old_token) or None.
-    Already-tagged TODOs return (None, existing_id, None, [], "", "").
+    Returns (match, meta_str, priority, tags, title_raw, old_token, existing_id) or None.
+    existing_id is set for already-tagged TODOs, None for bare ones.
     """
     m = TODO_TAGGED_META.search(line)
     if m:
-        return None, m.group(2), None, [], "", ""
+        meta_str = m.group(3)
+        priority, tags = _parse_meta(meta_str)
+        return m, meta_str, priority, tags, m.group(4), "", m.group(2)
 
     m = TODO_TAGGED.search(line)
     if m:
-        return None, m.group(2), None, [], "", ""
+        return m, None, None, [], m.group(3), "", m.group(2)
 
     m = TODO_BARE_META.search(line)
     if m:
         keyword = m.group(1)
         meta_str = m.group(2)
         priority, tags = _parse_meta(meta_str)
-        return m, meta_str, priority, tags, m.group(3), keyword + f"<{meta_str}>:"
+        return m, meta_str, priority, tags, m.group(3), keyword + f"<{meta_str}>:", None
 
     m = TODO_BARE.search(line)
     if m:
         keyword = m.group(1)
-        return m, None, None, [], m.group(2), keyword + ":"
+        return m, None, None, [], m.group(2), keyword + ":", None
 
     return None
 
@@ -240,18 +242,34 @@ class Nag:
                 i += 1
                 continue
 
-            m, meta_str, priority, tags, title_raw, old_token = result
-            if m is None:
-                source_ids.add(meta_str)
-                rel_path = os.path.relpath(filepath, self.root)
-                source_locations[meta_str] = f"{rel_path}:{i + 1}"
-                i += 1
-                continue
+            m, meta_str, priority, tags, title_raw, old_token, existing_id = result
             title = _clean_title(title_raw.strip(), m, lines[i], block_end)
 
             extra_lines = []
             if block_end and block_end not in title_raw and block_end not in lines[i]:
                 extra_lines = _collect_block_body(lines, i + 1, block_end)
+
+            if existing_id is not None:
+                source_ids.add(existing_id)
+                rel_path = os.path.relpath(filepath, self.root)
+                source_locations[existing_id] = f"{rel_path}:{i + 1}"
+
+                issue_dir = os.path.join(self.root, "todo", existing_id)
+                if not os.path.isdir(issue_dir):
+                    keyword = m.group(1)
+                    self._create_issue_from_sync(
+                        existing_id,
+                        title,
+                        extra_lines,
+                        f"{rel_path}:{i + 1}",
+                        priority=priority,
+                        tags=tags,
+                        assignee=None,
+                    )
+                    print(f"recreated {keyword}({existing_id}): {title}")
+
+                i += 1
+                continue
 
             new_id = str(uuid.uuid4())[:4]
             keyword = old_token.split("<")[0].split(":")[0]
