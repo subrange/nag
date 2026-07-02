@@ -1,4 +1,4 @@
-![nag](docs/logo.svg)
+![nag](assets/logo.svg)
 
 A postfix stack-based DSL for tracking todo inside a project.
 
