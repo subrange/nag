@@ -193,6 +193,7 @@ class Nag:
         self.notes = []
         self.attachments = []
         self.m = {}
+        self.dirty = False
 
     def _filter_eq(self, field, value, valid=None):
         if valid is not None and value not in valid:
@@ -500,6 +501,7 @@ class Nag:
                 self.notes = [line.rstrip("\n") for line in f if line.strip()]
 
         self.m = {id: self.meta}
+        self.dirty = False
 
         if DEBUG:
             print("fetched:", self.m)
@@ -692,6 +694,7 @@ class Nag:
 
         if id not in self.meta["depends"]:
             self.meta["depends"].append(id)
+        self.dirty = True
 
         if DEBUG:
             print("depends:", self.meta["depends"])
@@ -816,6 +819,7 @@ class Nag:
             exit(1)
 
         self.meta["status"] = status
+        self.dirty = True
 
     def attach(self):
         """Add an attachment to the current issue
@@ -837,6 +841,7 @@ class Nag:
             exit(1)
 
         self.attachments.append(attachment)
+        self.dirty = True
 
     def note(self):
         """Add a note to the current issue
@@ -854,6 +859,7 @@ class Nag:
             exit(1)
 
         self.notes.append(note)
+        self.dirty = True
 
         if DEBUG:
             print("notes:", self.notes)
@@ -891,6 +897,7 @@ class Nag:
 
         if tag not in self.meta["tags"]:
             self.meta["tags"].append(tag)
+        self.dirty = True
 
         if DEBUG:
             print("tags:", self.meta["tags"])
@@ -911,6 +918,7 @@ class Nag:
             exit(1)
 
         self.meta["priority"] = p
+        self.dirty = True
 
         if DEBUG:
             print("priority:", self.meta["priority"])
@@ -935,6 +943,7 @@ class Nag:
             exit(1)
 
         self.meta["title"] = title
+        self.dirty = True
 
         if DEBUG:
             print("title:", self.meta["title"])
@@ -976,6 +985,7 @@ class Nag:
             shutil.copy(attachment, attachments_path)
             print("copied", attachment)
 
+        self.dirty = False
         print("saved issue")
 
     def clear(self):
@@ -1086,5 +1096,8 @@ if __name__ == "__main__":
         if n.s:
             print("unknown command:", *n.s)
             exit(1)
+
+        if n.dirty:
+            print("warning: unsaved changes, did you forget save?")
 
         n.reset_meta()
