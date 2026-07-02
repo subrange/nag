@@ -555,7 +555,27 @@ class Nag:
         def fmt_date(s):
             if not s:
                 return ""
-            return datetime.datetime.fromisoformat(s).strftime("%b %d %H:%M")
+            dt = datetime.datetime.fromisoformat(s)
+            delta = datetime.datetime.now() - dt
+
+            seconds = delta.total_seconds()
+            if seconds < 60:
+                return "just now"
+            minutes = seconds / 60
+            if minutes < 60:
+                return f"{int(minutes)}m ago"
+            hours = minutes / 60
+            if hours < 24:
+                return f"{int(hours)}h ago"
+            days = delta.days
+            if days < 7:
+                return f"{days}d ago"
+            weeks = days / 7
+            if weeks < 5:
+                return f"{int(weeks)}w ago"
+
+            fmt = "%b %d" if dt.year == datetime.datetime.now().year else "%b %d %Y"
+            return dt.strftime(fmt)
 
         issues = list(self.m.values())
         if not issues:
