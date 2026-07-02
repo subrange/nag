@@ -585,15 +585,15 @@ class Nag:
         def fmt_title(t):
             return t[: TITLE_MAX - 1] + "…" if len(t) > TITLE_MAX else t
 
-        col_widths = [
-            max(len(m["id"]) for m in issues),
-            min(max(len(m["title"]) for m in issues), TITLE_MAX),
-            max(len(m["status"]) for m in issues),
-            max(len(m["priority"]) for m in issues),
-            max(len(fmt_date(m["created_at"])) for m in issues),
-        ]
-
         headers = ["id", "title", "status", "priority", "date"]
+
+        col_widths = [
+            max(len(headers[0]), max(len(m["id"]) for m in issues)),
+            max(len(headers[1]), min(max(len(m["title"]) for m in issues), TITLE_MAX)),
+            max(len(headers[2]), max(len(m["status"]) for m in issues)),
+            max(len(headers[3]), max(len(m["priority"]) for m in issues)),
+            max(len(headers[4]), max(len(fmt_date(m["created_at"])) for m in issues)),
+        ]
         header_parts = [h.ljust(col_widths[i]) for i, h in enumerate(headers)]
         header_line = "  ".join(header_parts)
         print(header_line)
