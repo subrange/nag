@@ -66,3 +66,15 @@ Show the dependency graph:
 ```sh
 nag all graph
 ```
+
+Sync TODOs from source files:
+
+```sh
+nag sync
+```
+
+Clear all orphaned issues:
+
+```sh
+nag all status:orphaned filter clear
+```
