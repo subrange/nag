@@ -234,6 +234,7 @@ class Nag:
 
         block_end = lang_info.get("block_end")
         modified = False
+        changes = 0
         i = 0
 
         while i < len(lines):
@@ -267,6 +268,7 @@ class Nag:
                         assignee=None,
                     )
                     print(f"recreated {keyword}({existing_id}): {title}")
+                    changes += 1
 
                 i += 1
                 continue
@@ -296,12 +298,15 @@ class Nag:
                 assignee=assignee,
             )
             print(f"created {keyword}({new_id}): {title}")
+            changes += 1
 
             i += 1
 
         if modified:
             with open(filepath, "w") as f:
                 f.writelines(lines)
+
+        return changes
 
     def _create_issue_from_sync(
         self,
@@ -728,8 +733,9 @@ class Nag:
 
         source_ids = set()
         source_locations = {}
+        changes = 0
         for filepath, lang_info in self._scan_files():
-            self._process_file(filepath, lang_info, source_ids, source_locations)
+            changes += self._process_file(filepath, lang_info, source_ids, source_locations)
 
         issues_dir = os.path.join(self.root, "todo")
         for issue_id in os.listdir(issues_dir):
@@ -751,6 +757,7 @@ class Nag:
                 with open(meta_path, "w") as f:
                     f.write(json.dumps(m, indent=2, sort_keys=True) + "\n")
                 print(f"orphaned TODO({issue_id}): {m['title']}")
+                changes += 1
 
         for issue_id, new_source in source_locations.items():
             meta_path = os.path.join(issues_dir, issue_id, "meta.json")
@@ -766,6 +773,10 @@ class Nag:
                 m["updated_at"] = str(datetime.datetime.now())
                 with open(meta_path, "w") as f:
                     f.write(json.dumps(m, indent=2, sort_keys=True) + "\n")
+                changes += 1
+
+        if changes == 0:
+            print("nothing to sync")
 
     def close(self):
         """Set status to resolved and save
