@@ -317,7 +317,7 @@ class Nag:
             "assignee": assignee,
         }
         with open(os.path.join(issue_dir, "meta.json"), "w") as f:
-            f.write(json.dumps(m))
+            f.write(json.dumps(m, indent=2, sort_keys=True) + "\n")
 
         body = "\n".join(extra_lines)
         with open(os.path.join(issue_dir, "body.md"), "w") as f:
@@ -390,7 +390,7 @@ class Nag:
             meta["updated_at"] = str(datetime.datetime.now())
             path = self.root + "/todo/" + id
             with open(path + "/meta.json", "w") as f:
-                f.write(json.dumps(meta))
+                f.write(json.dumps(meta, indent=2, sort_keys=True) + "\n")
             print(f"assigned {id} to {name}")
 
     def me(self):
@@ -731,7 +731,7 @@ class Nag:
                 m["status"] = "orphaned"
                 m["updated_at"] = str(datetime.datetime.now())
                 with open(meta_path, "w") as f:
-                    f.write(json.dumps(m))
+                    f.write(json.dumps(m, indent=2, sort_keys=True) + "\n")
                 print(f"orphaned TODO({issue_id}): {m['title']}")
 
         for issue_id, new_source in source_locations.items():
@@ -747,7 +747,7 @@ class Nag:
                 m["source"] = new_source
                 m["updated_at"] = str(datetime.datetime.now())
                 with open(meta_path, "w") as f:
-                    f.write(json.dumps(m))
+                    f.write(json.dumps(m, indent=2, sort_keys=True) + "\n")
 
     def close(self):
         """Set status to resolved and save
@@ -779,7 +779,7 @@ class Nag:
                 os.makedirs(path)
 
             with open(path + "/meta.json", "w") as f:
-                f.write(json.dumps(meta))
+                f.write(json.dumps(meta, indent=2, sort_keys=True) + "\n")
 
         count = len(self.m)
         print(f"closed {count} issue{'s' if count != 1 else ''}")
@@ -970,7 +970,7 @@ class Nag:
         self.meta["updated_at"] = str(datetime.datetime.now())
 
         with open(path + "/meta.json", "w") as f:
-            f.write(json.dumps(self.meta))
+            f.write(json.dumps(self.meta, indent=2, sort_keys=True) + "\n")
 
         body_path = path + "/body.md"
         with open(body_path, "w") as f:
