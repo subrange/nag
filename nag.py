@@ -735,7 +735,9 @@ class Nag:
         source_locations = {}
         changes = 0
         for filepath, lang_info in self._scan_files():
-            changes += self._process_file(filepath, lang_info, source_ids, source_locations)
+            changes += self._process_file(
+                filepath, lang_info, source_ids, source_locations
+            )
 
         issues_dir = os.path.join(self.root, "todo")
         for issue_id in os.listdir(issues_dir):
