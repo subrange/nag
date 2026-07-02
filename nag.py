@@ -415,6 +415,7 @@ class Nag:
             with open(path + "/meta.json", "w") as f:
                 f.write(json.dumps(meta, indent=2, sort_keys=True) + "\n")
             print(f"assigned {id} to {name}")
+        self.dirty = False
 
     def me(self):
         """Load issues assigned to the current user
@@ -814,6 +815,7 @@ class Nag:
 
         count = len(self.m)
         print(f"closed {count} issue{'s' if count != 1 else ''}")
+        self.dirty = False
 
     def all(self):
         """Load all issue objects
@@ -1071,6 +1073,8 @@ class Nag:
                 shutil.rmtree(issue_dir)
 
             print(f"cleared TODO({issue_id}): {meta.get('title', '')}")
+
+        self.dirty = False
 
 
 def split_pipelines(tokens):
