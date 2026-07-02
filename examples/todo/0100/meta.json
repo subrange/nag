@@ -1,0 +1,15 @@
+{
+  "assignee": null,
+  "blocks": [],
+  "created_at": "2026-07-02 00:20:46.918844",
+  "depends": [],
+  "id": "0100",
+  "priority": "high",
+  "source": "main.py:2",
+  "status": "open",
+  "tags": [
+    "perf"
+  ],
+  "title": "replace print with logging",
+  "updated_at": "2026-07-02 00:20:46.918844"
+}
