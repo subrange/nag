@@ -43,7 +43,6 @@ Commands:
   status    nag ... <open|resolved> status       (sets status on current issue)
   note      nag ... <text> note
   attach    nag ... <file> attach
-  depends   nag ... <id> depends
   save      nag ... save
   close     nag <id> fetch close
   fetch     nag <id> fetch
@@ -56,6 +55,7 @@ Commands:
                     tag id title source depends blocks created_at updated_at
   sort      nag all|me|others sort:<field>
   show      nag all|me|others show
+  depends   nag ... <id> depends
   graph     nag all|me|others graph
   sync      nag sync
   clear     nag <id> fetch clear
