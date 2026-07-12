@@ -253,7 +253,7 @@ class Nag:
             if existing_id is not None:
                 source_ids.add(existing_id)
                 rel_path = os.path.relpath(filepath, self.root)
-                source_locations[existing_id] = f"{rel_path}:{i + 1}"
+                source_locations[existing_id] = rel_path
 
                 issue_dir = os.path.join(self.root, "todo", existing_id)
                 if not os.path.isdir(issue_dir):
@@ -262,7 +262,7 @@ class Nag:
                         existing_id,
                         title,
                         extra_lines,
-                        f"{rel_path}:{i + 1}",
+                        rel_path,
                         priority=priority,
                         tags=tags,
                         assignee="",
@@ -292,7 +292,7 @@ class Nag:
                 new_id,
                 title,
                 extra_lines,
-                f"{rel_path}:{i + 1}",
+                rel_path,
                 priority=priority,
                 tags=tags,
                 assignee=assignee,
@@ -1038,35 +1038,35 @@ class Nag:
         for issue_id, meta in self.m.items():
             source = meta.get("source", "")
             if source:
-                filepath, _, lineno = source.rpartition(":")
-                filepath = os.path.join(self.root, filepath)
+                filepath = os.path.join(self.root, source)
 
-                if os.path.isfile(filepath) and lineno.isdigit():
+                if os.path.isfile(filepath):
                     with open(filepath, "r") as f:
                         lines = f.readlines()
 
-                    idx = int(lineno) - 1
-                    line = lines[idx] if 0 <= idx < len(lines) else ""
-                    m = TODO_TAGGED_META.search(line)
+                    modified = False
+                    for idx, line in enumerate(lines):
+                        m = TODO_TAGGED_META.search(line)
+                        if m and m.group(2) == issue_id:
+                            keyword = m.group(1)
+                            old = keyword + f"({issue_id})<{m.group(3)}>:"
+                            repl = keyword + f"<{m.group(3)}>:"
+                            lines[idx] = line.replace(old, repl, 1)
+                            modified = True
+                            break
 
-                    if m and m.group(2) == issue_id:
-                        keyword = m.group(1)
-                        old = keyword + f"({issue_id})<{m.group(3)}>:"
-                        repl = keyword + f"<{m.group(3)}>:"
-                        lines[idx] = line.replace(old, repl, 1)
-
-                        with open(filepath, "w") as f:
-                            f.writelines(lines)
-                    else:
                         m = TODO_TAGGED.search(line)
                         if m and m.group(2) == issue_id:
                             keyword = m.group(1)
                             old = keyword + f"({issue_id}):"
                             repl = keyword + ":"
                             lines[idx] = line.replace(old, repl, 1)
+                            modified = True
+                            break
 
-                            with open(filepath, "w") as f:
-                                f.writelines(lines)
+                    if modified:
+                        with open(filepath, "w") as f:
+                            f.writelines(lines)
 
             issue_dir = os.path.join(self.root, "todo", issue_id)
             if os.path.exists(issue_dir):
