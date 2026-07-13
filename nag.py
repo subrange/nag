@@ -529,7 +529,11 @@ class Nag:
             print("no todos")
             return
 
-        for id, meta in self.m.items():
+        divider = "-" * shutil.get_terminal_size().columns
+
+        for index, (id, meta) in enumerate(self.m.items()):
+            if index > 0:
+                print(divider)
             print(f"{id}  {meta['title']}")
             print(f"status: {meta['status']}  priority: {meta['priority']}")
             if meta["tags"]:
