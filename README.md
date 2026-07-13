@@ -20,6 +20,8 @@ Requires `python3` and either `curl` or `wget`.
 | `init`         | Initialize a nag project                      |
 | `new`          | Create a new issue object                     |
 | `tag`          | Add a tag                                     |
+| `untag`        | Remove a tag from the loaded issue or issues  |
+| `retag`        | Rename a tag across every issue               |
 | `priority`     | Set priority (`low`, `medium`, `high`)        |
 | `status`       | Set issue status (`open`, `resolved`)         |
 | `note`         | Append text to `body.md`                      |

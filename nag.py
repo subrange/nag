@@ -39,6 +39,9 @@ Commands:
   init      nag init
   new       nag <title> new
   tag       nag ... <tag> tag
+  untag     nag <id> fetch <tag> untag save
+            nag all|me|others field:value filter <tag> untag
+  retag     nag <old> <new> retag
   priority  nag ... <low|medium|high> priority   (sets priority on current issue)
   status    nag ... <open|resolved> status       (sets status on current issue)
   note      nag ... <text> note
@@ -159,6 +162,8 @@ class Nag:
             "new": self.new,
             "save": self.save,
             "tag": self.tag,
+            "untag": self.untag,
+            "retag": self.retag,
             "priority": self.priority,
             "help": self.help,
             "init": self.init,
@@ -934,6 +939,91 @@ class Nag:
 
         if DEBUG:
             print("tags:", self.meta["tags"])
+
+    def untag(self):
+        """Remove a tag from the loaded issue or issues
+
+        nag <id> fetch "predocs" untag save
+        nag all tag:predocs filter "predocs" untag
+        """
+        if len(self.s) == 0:
+            print("call untag with no args")
+            exit(1)
+
+        tag = self.s.pop()
+
+        if not isinstance(tag, str):
+            print("tag must be str")
+            exit(1)
+
+        if not self.m:
+            self.m = {self.meta["id"]: self.meta}
+
+        now = str(datetime.datetime.now())
+        count = 0
+
+        for id, meta in self.m.items():
+            if tag not in meta.get("tags", []):
+                continue
+
+            meta["tags"].remove(tag)
+            meta["updated_at"] = now
+
+            path = self.root + "/todo/" + id
+            if os.path.exists(path):
+                with open(path + "/meta.json", "w") as f:
+                    f.write(json.dumps(meta, indent=2, sort_keys=True) + "\n")
+            count += 1
+
+        print(f"untagged {tag} from {count} issue{'s' if count != 1 else ''}")
+        self.dirty = False
+
+    def retag(self):
+        """Rename a tag across every issue
+
+        nag "predocs" "compiler" retag
+        """
+        if len(self.s) < 2:
+            print("call retag with an old and a new tag")
+            exit(1)
+
+        new_tag = self.s.pop()
+        old_tag = self.s.pop()
+
+        if not isinstance(new_tag, str) or not isinstance(old_tag, str):
+            print("tags must be str")
+            exit(1)
+
+        now = str(datetime.datetime.now())
+        count = 0
+
+        for id in os.listdir(self.root + "/todo"):
+            meta_path = self.root + "/todo/" + id + "/meta.json"
+            if not os.path.isfile(meta_path):
+                continue
+
+            with open(meta_path) as f:
+                meta = json.load(f)
+
+            tags = meta.get("tags", [])
+            if old_tag not in tags:
+                continue
+
+            renamed = []
+            for t in tags:
+                replacement = new_tag if t == old_tag else t
+                if replacement not in renamed:
+                    renamed.append(replacement)
+
+            meta["tags"] = renamed
+            meta["updated_at"] = now
+
+            with open(meta_path, "w") as f:
+                f.write(json.dumps(meta, indent=2, sort_keys=True) + "\n")
+            count += 1
+
+        print(f"retagged {old_tag} to {new_tag} on {count} issue{'s' if count != 1 else ''}")
+        self.dirty = False
 
     def priority(self):
         """Set the priority of the current issue
