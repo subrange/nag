@@ -36,6 +36,7 @@ Requires `python3` and either `curl` or `wget`.
 | `pick`         | Assign loaded issues to the current user      |
 | `filter`       | Filter list by predicate string               |
 | `sort:<field>` | Sort list by field name                       |
+| `reverse`      | Flip the order of the loaded issues           |
 | `show`         | Print issue list                              |
 | `graph`        | Print ASCII dependency DAG                    |
 | `sync`         | Scan source files, assign IDs, detect orphans |

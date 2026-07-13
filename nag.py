@@ -57,6 +57,7 @@ Commands:
             fields: status:open|resolved|orphaned, priority:low|medium|high,
                     tag id title source depends blocks created_at updated_at
   sort      nag all|me|others sort:<field>
+  reverse   nag all|me|others sort:<field> reverse
   show      nag all|me|others show
   depends   nag ... <id> depends
   graph     nag all|me|others graph
@@ -173,6 +174,7 @@ class Nag:
             "all": self.all,
             "close": self.close,
             "sort": self.sort_list,
+            "reverse": self.reverse,
             "fetch": self.fetch,
             "filter": self.filter,
             "show": self.show,
@@ -500,6 +502,17 @@ class Nag:
 
         if DEBUG:
             print("sorted:", self.m)
+
+    def reverse(self):
+        """Flip the order of the loaded issues
+
+        nag all sort:priority reverse show
+        """
+        if len(self.s) != 0:
+            print("call reverse with no args")
+            exit(1)
+
+        self.m = dict(reversed(self.m.items()))
 
     def fetch(self):
         """Load a single issue by ID
