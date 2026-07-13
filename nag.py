@@ -1080,14 +1080,12 @@ class Nag:
 def split_pipelines(tokens):
     pipelines, current = [], []
     for t in tokens:
-        parts = t.split("+")
-        for i, part in enumerate(parts):
-            if part:
-                current.append(part)
-            if i < len(parts) - 1:
-                if current:
-                    pipelines.append(current)
-                current = []
+        if t == "+":
+            if current:
+                pipelines.append(current)
+            current = []
+        else:
+            current.append(t)
     if current:
         pipelines.append(current)
     return pipelines
