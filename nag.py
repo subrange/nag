@@ -59,6 +59,7 @@ Commands:
   sort      nag all|me|others sort:<field>
   reverse   nag all|me|others sort:<field> reverse
   show      nag all|me|others show
+  view      nag <id> fetch view
   depends   nag ... <id> depends
   graph     nag all|me|others graph
   sync      nag sync
@@ -178,6 +179,7 @@ class Nag:
             "fetch": self.fetch,
             "filter": self.filter,
             "show": self.show,
+            "view": self.view,
             "graph": self.graph,
             "depends": self.depends,
             "sync": self.sync,
@@ -513,6 +515,35 @@ class Nag:
             exit(1)
 
         self.m = dict(reversed(self.m.items()))
+
+    def view(self):
+        """Print the full detail and body of the loaded issue or issues
+
+        nag <id> fetch view
+        """
+        if len(self.s) != 0:
+            print("call view with no args")
+            exit(1)
+
+        if not self.m:
+            print("no todos")
+            return
+
+        for id, meta in self.m.items():
+            print(f"{id}  {meta['title']}")
+            print(f"status: {meta['status']}  priority: {meta['priority']}")
+            if meta["tags"]:
+                print("tags: " + " ".join(meta["tags"]))
+            if meta["depends"]:
+                print("depends: " + " ".join(meta["depends"]))
+
+            body_path = self.root + "/todo/" + id + "/body.md"
+            if os.path.isfile(body_path):
+                body = open(body_path).read().strip()
+                if body:
+                    print()
+                    print(body)
+            print()
 
     def fetch(self):
         """Load a single issue by ID

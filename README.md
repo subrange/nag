@@ -38,6 +38,7 @@ Requires `python3` and either `curl` or `wget`.
 | `sort:<field>` | Sort list by field name                       |
 | `reverse`      | Flip the order of the loaded issues           |
 | `show`         | Print issue list                              |
+| `view`         | Print full detail and body of loaded issues   |
 | `graph`        | Print ASCII dependency DAG                    |
 | `sync`         | Scan source files, assign IDs, detect orphans |
 | `clear`        | Remove TODO IDs from source and delete issues |
